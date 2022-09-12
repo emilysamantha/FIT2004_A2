@@ -4,7 +4,7 @@ Author: Emily Samantha Zarry
 ID: 32558945
 
 """
-from queue import PriorityQueue
+import heapq
 from collections import deque
 
 # Part 1
@@ -218,13 +218,14 @@ def dijkstra(graph: list, start: int) -> list:
     dist[start] = 0
 
     # Initializing priority queue
-    queue = PriorityQueue()
-    queue.put((0, start))
+    queue = []
+    heapq.heapify(queue)
+    heapq.heappush(queue, (0, start))
 
     # Main loop
-    while not queue.empty():  # O(V)
+    while len(queue) > 0:  # O(V)
         # Extracting the nearest location u
-        dist_u, u = queue.get()
+        dist_u, u = heapq.heappop(queue)
 
         # Only processing up-to-date entries
         if dist_u == dist[u]:
@@ -239,7 +240,7 @@ def dijkstra(graph: list, start: int) -> list:
                     # Set the predecessor of v as u
                     pred[v] = u
                     # Update the priority queue
-                    queue.put((dist[v], v))
+                    heapq.heappush(queue, (dist[v], v))
 
     return dist, pred
 
@@ -262,6 +263,15 @@ def optimalRoute(downhillScores: list, start: int, finish: int) -> list:
 
     :Time Complexity: Need to be O(D), where D is the number of downhill segments (edges)
     :Aux Space Complexity:
+
+    Approach Explanation:
+    To prevent iterating the edge relaxation V times, a queue is used to keep track of the order of vertices
+    we need to visit. This queue stores the vertices such that we process them in the order of its reachability.
+    This way, for each vertex we visit, it is guaranteed that we already know the maximum distance of all its
+    predecessor vertices.
+
+    So for each vertex, beginning from the starting vertex, we append the vertex's next vertex to the queue and this
+    next vertex/vertices will be the next vertex we will process in our loop.
     """
     # Getting the number of intersections
     num_intersections = get_num_vertices(downhillScores)
@@ -287,37 +297,41 @@ def optimalRoute(downhillScores: list, start: int, finish: int) -> list:
 
     vertices_to_visit.append(start)
 
-    while True:
-        # While there are still vertices to uncover
-        if len(vertices_to_visit) > 0:
-            # Get the current vertex we are looking at
-            curr_vertex = vertices_to_visit.popleft()
+    counter1, counter2, counter_while = 0, 0, 0
 
-            # For each vertex, go through each of the incoming edges
-            for i in range(1, len(graph_before[curr_vertex])):
-                # Get the previous vertex and the score for going through that downhill segment
-                prev, score = graph_before[curr_vertex][i]
+    # While there are still vertices to uncover
+    while len(vertices_to_visit) > 0:
+        # Get the current vertex we are looking at
+        curr_vertex = vertices_to_visit.popleft()
+        counter_while += 1
 
-                # If the score for going through that downhill segment is larger than the current score
-                if dist[prev] + score > dist[curr_vertex]:
-                    # Update the maximum score of curr_vertex
-                    dist[curr_vertex] = dist[prev] + score
-                    # Set the predecessor of curr_vertex as the previous vertex
-                    pred[curr_vertex] = prev
+        # For each vertex, go through each of the incoming edges
+        for i in range(len(graph_before[curr_vertex])):
+            # Get the previous vertex and the score for going through that downhill segment
+            prev, score = graph_before[curr_vertex][i]
 
-            # If there are outgoing edges from the current vertex
-            if len(graph_next[curr_vertex]) > 0:
-                # Go through each edge
-                for i in range(1, len(graph_next[curr_vertex])):
-                    # If the vertex of that outgoing edge has not been included in the queue
-                    if not included[graph_next[curr_vertex][i][0]]:
-                        # Append the vertex to vertices_to_visit
-                        vertices_to_visit.append(graph_next[curr_vertex][i][0])
-                        # Mark the vertex as included
-                        included[graph_next[curr_vertex][i][0]] = True
-        else:
-            break
+            counter1 += 1
 
+            # If the score for going through that downhill segment is larger than the current score
+            if dist[prev] + score > dist[curr_vertex]:
+                # Update the maximum score of curr_vertex
+                dist[curr_vertex] = dist[prev] + score
+                # Set the predecessor of curr_vertex as the previous vertex
+                pred[curr_vertex] = prev
+
+        # If there are outgoing edges from the current vertex
+        if len(graph_next[curr_vertex]) > 0:
+            # Go through each edge
+            for i in range(len(graph_next[curr_vertex])):
+                # If the vertex of that outgoing edge has not been included in the queue
+                counter2 += 1
+                if not included[graph_next[curr_vertex][i][0]]:
+                    # Append the vertex to vertices_to_visit
+                    vertices_to_visit.append(graph_next[curr_vertex][i][0])
+                    # Mark the vertex as included
+                    included[graph_next[curr_vertex][i][0]] = True
+
+    print(counter1, counter2, counter_while)
     return construct_path(pred, finish)
 
 
@@ -326,7 +340,7 @@ def construct_adjacency_list(downhillScores, num_intersections, before=False):
 
     """
     # Initializing adjacency list
-    graph = [[None] for _ in range(num_intersections + 1)]
+    graph = [[] for _ in range(num_intersections + 1)]
 
     # Filling the adjacency list from the data in downhillScores
     for i in range(len(downhillScores)):
@@ -346,7 +360,7 @@ def construct_path(pred, finish):
     """
     # If the end point of the tournament is not reachable, return an empty list
     if pred[finish] is None:
-        return []
+        return None
 
     # Constructing the optimal route for obtaining the maximum score
     path = [finish]
@@ -366,9 +380,14 @@ roads = [(0, 1, 4), (1, 2, 2), (2, 3, 3), (3, 4, 1), (1, 5, 2),
 cafes = [(5, 10), (6, 1), (7, 5), (0, 3), (8, 4)]
 
 mygraph = RoadGraph(roads, cafes)
-print(mygraph.routing(1, 3))
+# print(mygraph.routing(1, 3))
 
 # TESTING TASK 2
 scores = [(0, 6, -500), (1, 4, 100), (1, 2, 300), (6, 3, -100), (6, 1, 200),
-                  (3, 4, 400), (3, 1, 400), (5, 6, 700), (5, 1, 1000), (4, 2, 100)]
-print(optimalRoute(scores, 0, 4))
+          (3, 4, 400), (3, 1, 400), (5, 6, 700), (5, 1, 1000), (4, 2, 100), (3, 7, 100), (7, 4, -200)]
+
+scores2 = [(0, 1, 100), (0, 2, 100), (0, 3, 200), (0, 4, 200),
+           (1, 2, 100), (1, 3, 200), (1, 4, 300),
+           (2, 3, 100), (2, 4, 200),
+           (3, 4, 100)]
+print(optimalRoute(scores2, 0, 4))
