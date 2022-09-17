@@ -293,6 +293,10 @@ def optimalRoute(downhillScores: list, start: int, finish: int) -> list:
 
     This gives a total upper bound of O(D) for the whole loop.
     """
+    # If the start and finish points are the same, return that point as the path
+    if start == finish:
+        return [start]
+
     # Getting the number of intersections
     num_intersections = get_num_vertices(downhillScores)        # O(D)
 
@@ -370,7 +374,7 @@ def construct_adjacency_list(downhillScores: list, num_intersections: int, befor
     """
     # Initializing adjacency list
     graph = [[] for _ in range(num_intersections + 1)]
-    # O(P + D) space, but D dominates P since graph is connected
+    # O(P + D) space, but D dominates P
     # So, space complexity becomes O(D)
 
     # Filling the adjacency list from the data in downhillScores
@@ -395,8 +399,8 @@ def construct_path(pred: list, finish: int) -> list:
     :Output:
         path: list of intersection points to visit to obtain the maximum score
 
-    :Time Complexity:
-    :Aux Space Complexity:
+    :Time Complexity: O(P)
+    :Aux Space Complexity: O(P)
     """
     # If the end point of the tournament is not reachable, return an empty list
     if pred[finish] is None:
@@ -413,21 +417,4 @@ def construct_path(pred: list, finish: int) -> list:
     return path
 
 
-# TESTING TASK 1
-roads = [(0, 1, 4), (1, 2, 2), (2, 3, 3), (3, 4, 1), (1, 5, 2),
-         (5, 6, 5), (6, 3, 2), (6, 4, 3), (1, 7, 4), (7, 8, 2),
-         (8, 7, 2), (7, 3, 2), (8, 0, 11), (4, 3, 1), (4, 8, 10)]
-cafes = [(5, 10), (6, 1), (7, 5), (0, 3), (8, 4)]
 
-mygraph = RoadGraph(roads, cafes)
-# print(mygraph.routing(1, 1))
-
-# TESTING TASK 2
-scores = [(0, 6, -500), (1, 4, 100), (1, 2, 300), (6, 3, -100), (6, 1, 200),
-          (3, 4, 400), (3, 1, 400), (5, 6, 700), (5, 1, 1000), (4, 2, 100), (3, 7, 100), (7, 4, -200)]
-
-scores2 = [(0, 1, 100), (0, 2, 100), (0, 3, 200), (0, 4, 200),
-           (1, 2, 100), (1, 3, 200), (1, 4, 300),
-           (2, 3, 100), (2, 4, 200),
-           (3, 4, 100)]
-print(optimalRoute(scores2, 0, 4))
